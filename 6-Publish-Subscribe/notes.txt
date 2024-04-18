@@ -1,0 +1,34 @@
+Before we start, we'll discuss what're the pros & cons of simple Request/Response.
+
+    pros: 
+        - Elegant & simple
+        - Scalable
+    
+    cons: 
+        - Bad for multiple receivers
+        - High Coupling 
+        - Client/Server have to be running all the time
+    
+
+
+Pub/Sub pros & cons:
+    pros:
+        - Scales with multiple receivers
+        - Great for microservices
+        - Loose Coupling
+        - Works while clients not running
+
+    cons: 
+        - Message delivery issues "How do I know that the consumer (subscriber) actually got the message?
+        - Complexity
+        - Network Saturation
+
+
+Demo Example: 
+    Publish a job and have workers pick them up.
+
+
+
+When we run "consumer.js" we recieve all tasks from queue and when another consumer connects it'll wait for jobs
+but won't get the jobs recieved by the first consumer.
+If the first consumer disconnects, the second consumer immediately gets free jobs.
