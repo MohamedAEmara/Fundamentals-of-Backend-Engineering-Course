@@ -1,0 +1,40 @@
+What to take into account when designing a protocol?
+
+What is a protocol?
+    - a system (set of rules) that allows two parties to communicate.
+    - a protocol is designed with a set of properties.
+    
+
+Protocol Properties:
+    
+    - Data format
+        - Text based (plain text, JSON, XML)
+        - Binary (protobuf, RESP "redis serialization protocol", http2, http3)
+    
+    - Transfer Mode
+        - Message based (UDP, HTTP)
+        - Stream (TCP, WebRTC)
+    
+    - Addressing system
+        - DNS name, IP, MAC
+    
+    - Directionality
+        - Bidirectional (TCP)
+        - Unidirectional (HTTP)
+        - Full/Half duplex
+            wifi is "half duplex"   ==>  no two devices can send at the same time.
+
+    - State
+        - Stateful (TCP, gRPC, apache thrift)
+        - Stateless (UDP, HTTP)
+    
+    - Routing
+        - Proxies, Gateways
+
+    - Flow & Congestion control
+        - TCP (Flow & Congestion)
+        - UDP (No control)
+
+    - Error Management
+        - Error Code
+        - Retries and timeout
