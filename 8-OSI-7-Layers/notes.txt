@@ -1,0 +1,43 @@
+What is OSI model?   7 layers each describe a specific networking component
+
+    - Layer 7 (Application) 
+        HTTP - FTP - gRPC
+    - Layer 6 (Presentation)
+        Encoding, Serialization
+    - Layer 5 (Session)
+        Connection establishment, TLS
+    - Layer 4 (Transport)
+        UDP - TCP "segment"  ==> every other layer 4 protocol is built on top of these two.
+    - Layer 3 (Network)
+        IP "packet"
+    - Layer 2 (Data Link)
+        MAC address Ethernet  "frames"
+    - Layer 1 (Physical)
+        Electric signals, fiber or radio waves
+
+
+
+
+EXAMPLE: Sending a POST request to an HTTPS webpage:
+
+- Layer 7 (Application)
+    - POST request with JSON data to HTTPS server
+
+- Layer 6 (Presentation)
+    - Serialize JSON to flat byte strings
+
+- Layer 5 (Session)
+    - Request to establish TCP connection/TLS
+
+- Layer 4 (Transport)
+    - Send SYN request target port 443
+
+- Layer 3 (Network)
+    - SYN is placed an IP packet(s) and adds the source/dest MAC IPs
+
+- Layer 2 (Data Link)
+    - Each packet goes into a single frame and adds the source/dest MAC addresses
+
+- Layer 1 (Physical)
+    - Each frame becomes string of bits which converted into either a radio signal (wifi), electric signal(ethernet), or light(fiber)
+    
