@@ -1,0 +1,22 @@
+ICPM    ==>     Internet Control Message Protocol
+
+- designed for informational messages
+    - Host unreachable, port unreachable, fragmentation needed
+    - Packet expired (infinite loop in routers)
+- uses IP directly
+- PING and traceroute use it
+- doesn't require listeners or ports to be opoened
+
+- some firewalls block ICMP for security reasons
+- that's why PING might not work in those cases
+- Disabling ICMP also can cause real damage with connection establishment (TCP black hole)
+    - fragmentation needed
+
+
+
+
+TraceRoute
+    - Can you identify the entire path your IP Packet takes
+    - Clever use of TTL
+    - Increment TTL slowly and you will get the router IP address for each hop
+    - doesn't always work as path changes and ICMP might be blocked
