@@ -1,0 +1,97 @@
+UDP (User Datagram Protocol) "Intro"
+    - The reason it's called user-data-gram because there is a message that the user set
+      and that message is responsible to fit exactly into that segment that fit exactly into an IP packet
+
+    - UDP is an actual message that has a start and an end.
+      but TCP is a hoze of bytes and based on certain decisions the kernel will segment these bytes into "TCP segments"
+
+    - But UDP is simpler, I prepare the message, send it and don't care if it arrived or not.
+
+
+
+>>>>>>>>>>>>>>>>>> UDP <<<<<<<<<<<<<<<<<
+- stands for User Datagram Protocol
+- Layer 4 Protocol
+- ability to address processes in a host using ports
+    You can send multiple requests to the same host using ports.
+- simple protocol to send and receive data
+- prior communication not required (doule-edge sword)
+- stateless not knowledge is stored on the host
+- 8 byte header diagram
+
+
+>>>>>>>>>>>>>> Some Use Cases <<<<<<<<<<<<
+- Video streaming
+- VPN
+- DNS 
+- WebRTC "Web Real Time Communication"
+
+
+>>>>>>>>>>>>>> Multiplexing and Demultiplexing <<<<<<<<<<<<<<<
+- IP target hosts only
+- Hosts run many apps each with different requirements
+- Ports now identify the "app" or "process"
+- Sender multiplexes all its apps into UDP
+- Receiver demultiplex UDP datagram to each app
+
+    - app1 - port 5555                                          - appX - port 53
+    - app2 - port 7715   10.0.0.1     <---------->  10.0.0.2    - appY - port 68        
+    - app3 - port 2222                                          - appZ - port 6978
+
+Example: source & destination port 
+- app1 on 10.0.0.1 sends data to AppX on 10.0.0.2
+- destination port = 53
+- appX responds back to app1
+- we need source port so  we know how to send data back
+- source port = 5555 
+
+            ----------------------------------------------->
+                ___________________________________
+                | 10.0.0.1 | 5555 |  53  | 10.0.0.2 |
+                -------------------------------------
+
+                ___________________________________
+                | 10.0.0.2 |  53  | 5555 | 10.0.0.1 |
+                -------------------------------------
+            <-----------------------------------------------
+
+
+>>>>>>>>>>>>>>>>>>>>>>>> UDP Datagram <<<<<<<<<<<<<<<<<<<
+- UDP Header is 8 bytes 8 bytes only (IPv4)
+- Datagram slides into an IP packet as "data"
+- Port is 16-bit (0 -> 65535)
+
+     ______byte 1             byte 2__________________byte 3____________________byte 4___________
+    |0 1 2 3 4 5 6 7 | 8 9 10 11 12 13 14 15 | 16 17 18 19 20 21 22 23 | 24 25 26 27 28 29 30 31 |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |           source port                  |                destination port                   |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |             Length                     |                      Checksum                     |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |                                       Data                                                     |
+    |                                                                                            |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    
+  - source / destination ports  ==>   we have 16 bits for each (2^16 destinations for every source port and same dest host)
+  - length & checksum to tell you if the packet is corrupted or not.
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Pros & Cons <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+Pros: 
+  - simple
+  - header size is small so datagrams are small
+  - uses less bandwidth
+  - stateless
+  - consumes less memory (no state stored in the server/client)
+  - Low latency - no handshake, order, retransmission or guaranteed delivery
+
+Cons: 
+  - No acknowledgement
+  - No guarantee delivery
+  - Connection-less - anyone can send data without prior knowledge
+  - No flow control
+  - No congestion control
+  - No ordered packets
+  - Security - can be easily spoofed (you can still sending data to anyone and receive from anyone)
+      it processes all requests comming, so it can overload the machine.
