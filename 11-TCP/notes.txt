@@ -1,0 +1,238 @@
+>>>>>>>>>>>>>>>>>>>>>>>> TCP (Transmission Control Protocol) <<<<<<<<<<<<<<<<<<<<<<<<<
+- Stands for "Transmission Control Protocol"
+- Layer 4 Protocol
+- Ability to access processes in a host using ports
+- "Controls" the transmission unlike UDP which is a firehose
+- Connection, there is a session between the client and the server (they store the state)
+- and to build that state, we need "HANDSHAKE"
+- 20 bytes headers segment (can go to 60)
+    // Now we have 20 byte header for the IP & another 20 bytes for the segment. 
+- stateful
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>> TCP Use Cases <<<<<<<<<<<<<<<<<<<<<<<<<<<
+- Reliable communication
+- Remote shell
+- Database connections
+- Web communications
+- Any bidirectional communication
+    // HTTP is a request/response protocol
+    // but TCP is a bidirectional communication
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>> TCP Connection <<<<<<<<<<<<<<<<<<<<<<<<<<<
+- connection is layer 5 (session)
+- connection is an agreement between client and the server
+- must create a connection to send data
+- Connection is identified by 4 properties:
+    - sourceIP      - sourcePort
+    - destinationIP - destinationPort
+- can't send data outside of a connection
+- sometimes called "socket" or "file descriptor"
+- Requires a 3-way TCP handshake
+- Segments are sequenced and ordered
+- Segments are acknowledged
+- Lost segments are retransmitted
+
+
+
+>>>>>>>>>>>>>> Multiplexing and Demultiplexing <<<<<<<<<<<<<<<
+- IP targets hosts only
+- Hosts run many apps each with different requirements
+- Ports now identify the "app" or "process"
+- Sender multiplexes all its apps into TCP connections
+- Receiver demultiplex TCP datagram to each app based on connection pairs.
+
+    - app1 - port 5555                                          - appX - port 53
+    - app2 - port 7715   10.0.0.1     <---------->  10.0.0.2    - appY - port 68        
+    - app3 - port 2222                                          - appZ - port 6978
+
+Example: source & destination port 
+- app1 on 10.0.0.1 wants to send data to AppX on 10.0.0.2
+- app1 sends SYN to appX to synchronous sequence numbers
+    // to make both of them know the sequences of the other one to send data bidirectionally
+- appX sends SYN/ACK to synchronous its sequence number
+- app1 ACKs appX SYN
+- Three way handshake 
+
+            __________________________________________
+            | 10.0.0.1 | 5555 | SYN |  22  | 10.0.0.2 |
+            ```````````````````````````````````````````
+        ------------------------------------------------------>
+
+                ______________________________________________
+            | 10.0.0.2 | 22 | SYN/ACK |  5555  | 10.0.0.1 |
+            ```````````````````````````````````````````````
+        <------------------------------------------------------
+
+                ________________________________________
+            | 10.0.0.1 |  5555 | ACK | 22 | 10.0.0.2 |
+            ``````````````````````````````````````````
+        ------------------------------------------------------>
+
+file descriptor in this case:
+    10.0.0.1:5555:10.0.0.2:22
+
+
+Now, this file descriptor allows the first app only to send data
+    but we cannot send from ip address because we don't have a file descriptor for it yet.
+    we have to establish a connection first.
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>> Sending Data <<<<<<<<<<<<<<<<<<<<<
+- App1 sends data to AppX
+- App1 encapsulates the data in a segment and sends it
+- AppX acknowledges the segment
+
+// For example we send "ls" 
+
+                _________________________________________
+                | 10.0.0.1 | 5555 | ls |  22  | 10.0.0.2 |
+                `````````````````````````````````````````
+              --------------------------------------------->    
+
+10.0.0.1                                                     10.0.0.2
+                __________________________________________
+                | 10.0.0.2 | 22 | ACK |  5555  | 10.0.0.1 |
+                ``````````````````````````````````````````
+              <-------------------------------------------- 
+
+HINT: Can App1 send new segment before ack of old segment arrives??
+    in other words: Can I send another command before I get "ACK"??     
+    YEEEEEEEES, but you have a limit 
+    it's up to the server that can handle these.
+        and up to the router that can handle it.  
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>> Acknowledgement <<<<<<<<<<<<<<<<<<<<<<<<<<
+- App1 sends segment 1, 2, & 3 to AppX
+- AppX acknowledges all of them with single ACK 3
+
+
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seq1 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->    
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seg2 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->    
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seg3 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->    
+
+
+                ___________________________________________
+                | 10.0.0.2 | 22 | ACK3 |  5555  | 10.0.0.1 |
+                ```````````````````````````````````````````
+              <-----------------------------------------------    
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Lost Data <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+- App1 sends segment 1,2 and 3 to AppX
+- Seg3 is lost, AppX acknowledged 3
+- App1 resends Seg3
+
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seq1 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->>   
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seg2 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->>   
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seg3 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````        
+              ----------------------------------------------->>  X
+
+
+            
+                ___________________________________________
+                | 10.0.0.2 | 22 | ACK2 |  5555  | 10.0.0.1 |
+                ```````````````````````````````````````````
+              <<----------------------------------------------    
+                ___________________________________________
+                | 10.0.0.1 | 5555 | seg3 |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ---------------------------------------------->>    
+                ___________________________________________
+                | 10.0.0.2 | 22 | ACK3 |  5555  | 10.0.0.1 |
+                ```````````````````````````````````````````
+              <<----------------------------------------------    
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>> Closing Connection <<<<<<<<<<<<<<<<<<<<<<<<<<
+- App1 wants to close the connection
+- App1 sends FIN, AppX ACK 
+- AppX sends FIN, APP1 ACK
+- Four way handshake
+
+
+                ___________________________________________
+                | 10.0.0.1 | 5555 | FIN  |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->>   
+                ___________________________________________
+                | 10.0.0.2 | 22 | ACK  |  5555  | 10.0.0.1 |
+                ```````````````````````````````````````````
+              <<-----------------------------------------------  
+                ___________________________________________
+                | 10.0.0.2 | 22 | FIN  |  5555  | 10.0.0.1 |
+                ```````````````````````````````````````````        
+              <<-----------------------------------------------  
+                ___________________________________________
+                | 10.0.0.1 | 5555 | ACK  |  22  | 10.0.0.2 |
+                ```````````````````````````````````````````
+              ----------------------------------------------->>   
+
+NOTE: when you send FIN, it will check first that you have a connection established.
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>> TCP Segment <<<<<<<<<<<<<<<<<<<<<<<<<<<
+The anatomy of the TCP segment
+
+- TCP segment header is 20 bytes and can go up to 60 bytes.
+- TCP segments slide into an IP packet as "data"
+- Port are 16 bit (0 to 65535)
+- sequences, acknowledgement, flow control and more.
+
+
+
+     ______byte 1             byte 2__________________byte 3____________________byte 4___________
+    |0 1 2 3 4 5 6 7 | 8 9 10 11 12 13 14 15 | 16 17 18 19 20 21 22 23 | 24 25 26 27 28 29 30 31 |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |           source port                  |                destination port                   |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |                                 sequence number                                            |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |                             acknowledgement number                                         |
+    |                                                                                            |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |           some flags                   |                window size                        |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |            checksum                    |               Urgent pointer                      |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+    |                               OPTIONSSSSSSSSS                                              |
+    |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Maximum segment size <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+- Segment size depends on the MTU of the network
+- Usually 512 bytes can go up to 1460
+- Default MTU in the internet is 1500 (results in MSS 1460) "20 bytes for IP & 20 bytes for TCP, remaining 1460 for MSS"
+- Jumbo frames MTU goes up to 9000 or more 
+- MSS can be larger in jumbo frames cases
+    
