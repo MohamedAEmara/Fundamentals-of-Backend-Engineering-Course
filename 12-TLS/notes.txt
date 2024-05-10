@@ -1,0 +1,140 @@
+>>>>>>>>>>>>>>>>>>>>>>>>> TLS (Transport Layer Security) <<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+================== HTTP ================
+
+
+        |                               |
+        | \                             |
+        |  \                            |
+        |   \_____GET Request______ >>  |   
+        |                               |
+        |                              /|
+ Client |                             / | Server
+        |  <<____Headers + response__/  |
+        |                               |
+        |                               |
+        |                               |
+        |                               |
+        |                               |
+
+- This is How HTTP request is serverd.
+- anyone in the middle can see the request & response (ISP, router, ...)
+- So, we need to encrypt them.
+
+
+================= HTTPS ===================
+- First, we do "HANDSHAKE" to have the same key
+- After that we send encrypted "GET" request to the server.
+
+        |                               |
+  key   |       <=== HANDSHAKE ===>     |    key
+        |                               |
+        |                               |
+        | \                             |
+        |  \                            |
+        |   \_Encrypted GET Request_ >> |   
+        |                               |
+        |                              /|
+ Client |                             / | Server
+        | <<__Encrypted Headers+res _/  |
+        |                               |
+        |                               |
+        |                               |
+        |                               |
+        |                               |
+
+
+    
+
+============ TLS 1.2 ===========
+ 
+RSA Public key          ==>     A 
+RSA Private key         ==>     B 
+client key              ==>     C
+
+        |                                       |   A, B
+        |>>___client send request to encrypt__>>|    
+        |                                       |
+        |                                       |
+    A   |<<____server hello (cert) with A_____<<|
+        |                                       |
+        |                                       |
+        |>>__client generates symmetric key C   |
+        |__ and sends it with the public key__>>| 
+        |>>>___________ A+C _________________>>>|   A+C
+
+// The server will use B (the private key) with A+C to generate C (client key)
+// Now, nobody in between has the client key. just the server and the client        
+        
+        |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \_Encrypted GET Request_ >>         |   
+        |                                       |
+        |                              /        |
+ Client |                             /         | Server
+        | <<__Encrypted Headers+res _/          |
+        |                                       |
+        |                                       |
+        |                                       |
+
+
+
+>>>>>>>>>>>>>>>>>>> Diffie Hellman <<<<<<<<<<<<<<<<<<<
+
+Private X   "client generated" 
+    +
+Public g,n      ===>    Golden Key (Symmetric Key) 
+    +
+Private Y   "server generated"
+
+
+
+blue (private) "x"  +  red (public) "g"   ==>     can be public "Unbreakable"  (g^x%n)
+n has to be "high prime number"
+
+
+pink (private) "y"  +  red (public) "g"   ==>     can be public "Unbreakable"  (g^y%n)
+
+given these two (Unbreakable) combinations
+you can get the private key
+
+
+(g^x%n)^y = g^xy%n
+(g^y%n)^x = g^xy%n
+
+
+
+
+============ TLS 1.3 ===========
+
+Client Public key          ==>     A 
+Client Private key         ==>     B 
+
+
+A, B    |                                       |
+        |>>________client send A, (A+B)_______>>|   A, A+B
+        |                                       |   C
+        | The server will generate symmetric key|
+        | out of C, A+B                         |
+        |                                       |
+        | Now, what does the client need to     |
+        | generate its symmetric key?           |
+        |  - C key. but you cannot just send it |
+        |                                       |
+        | What you can do instead take A+C      |
+        | NOTE: server has A fron the first send|
+A+C     |                                       |
+        | Now the client can do math to generate|
+        | symmetric key                         |
+        |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \_Encrypted GET Request__________ >>| 
+        |                                       |
+        |                                      /|
+        |                                     / | 
+        | <<__Encrypted Headers+res__________/  |
+        |                                       |
+        |                                       |
+        |                                       |
