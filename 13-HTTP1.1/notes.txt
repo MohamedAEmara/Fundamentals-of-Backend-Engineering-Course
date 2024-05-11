@@ -1,0 +1,237 @@
+>>>>>>>>>>>>>>>>>> HTTP 1.1 <<<<<<<<<<<<<<<<
+
+============== HTTP Request ===============
+    __________________________________
+    | Method  |   Path   |  Protocol |
+    |--------------------------------|
+    |           Headers              |
+    |--------------------------------|
+    |            Body                |
+    ``````````````````````````````````
+
+
+- Method: GET, POST, PUT, PATCH
+
+- Path: the path after the host
+        like "/", "/about", "/docs"
+
+- Protocol: HTTP1.0, HTTP1.1, HTTP2, ...
+
+- Headers: a collection of {key:value} pairs
+    ex: content-type: application/data
+        content-length: 700bytes
+        cookies: .....
+        authority: ....
+        host: ....
+
+- Body: the body of the Request
+    - it's empty when it's a GET http request.
+      but they may have "query parameters" in the Path
+
+
+HTTP REQEST Example: 
+    curl -v http://husseinnasser.com/about
+
+    > GET /about HTTP/1.1
+    > Host: husseinnasser.com
+    > User-Agent: curl/7.81.0
+    > Accept: */*
+
+
+
+
+============== HTTP Response ===============
+    __________________________________
+    | Protocol  |  Code  | Code Text |
+    |--------------------------------|
+    |           Headers              |
+    |--------------------------------|
+    |            Body                |
+    ``````````````````````````````````
+
+
+- Code: 200, 404, 500 
+- Code Text: Ok, Internal-Server-Error, Not-Found
+- Headers: same options as the request
+- 
+
+Example: 
+
+< HTTP/1.1  200  OK             # NOTE: in http/2 there is no code-text
+< Server: nginx/1.21.5
+< Date: Mon, 31 Oct 2022 22:06:47 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 8751
+< Last-Modified: Tue, 25 Oct 2022 17:33:32 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=15
+< ETag: "63581dec-222f"
+< Accept-Ranges: bytes
+<
+
+// After headers, Here's the actual content:
+<HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+<TITLE>301 Moved</TITLE></HEAD><BODY>
+<H1>301 Moved</H1>
+The document has moved
+<A HREF="http://www.husseinnasser.com/">here</A>.
+</BODY></HTML>
+
+
+==================== HTTP Req-Res ==================
+ open   |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   |
+        |    \_____________GET/______________>> |
+        |                                       |
+        |                                      /|
+client  |                                     / |  Server
+        |                                    /  |
+        |<<________Headers+index.html_______/   |
+        |                                       |
+ close  |                                       |
+        |                                       |
+
+
+NOTE: you have to open & close becuase HTTP is built on top of TCP
+
+
+
+==================== HTTPS Req-REs =====================
+ open   |                                       |
+        |                                       |
+ KEY    |<<<<<<<<------ HANDSHAKE ------>>>>>>>>|  KEY
+        |                                       |
+        |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   |
+        |    \____Encrypted-GET/_____________>> |
+        |                                      /|
+client  |                                     / |  Server
+        |                                    /  |
+        |<<___Encrypted-Headers+index.html__/   |
+        |                                       |
+ close  |                                       |
+        |                                       |
+
+
+
+====================== HTTP 1.0 ====================
+ open   |                                       |
+        | \                                     |
+        |  \                                    |
+ client |   \                                   | 
+        |    \_____________GET/______________>> |
+        |                                       |
+ close  |<<________Headers+index.html___________|
+        |                                       |
+        |                                       |  Server
+ open   |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   | 
+        |    \_____________GET/about_________>> |
+        |                                       |
+ close  |<<________Headers+about.html___________|
+        |                                       |
+        
+In HTTP/1.0, after the response is sent, the connection closes.
+    and if you want to send another request, you have to open another connection.
+
+>>>> HTTP/1.0
+- New TCP connection with each request
+- Slow
+- Buffering (transfer-encoding:chunked didn't exist)    
+    you cannot chunck the response (have to send it on the same response)
+    you can specify the content-length to ship all the content once.
+- No multi-homed websites (HOST header)
+
+
+
+
+====================== HTTP 1.1 ====================
+ open   |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   | 
+        |    \_____________GET/______________>> |
+        |                                       |
+ client |<<________Headers+index.html___________|  Server
+        |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   | 
+        |    \_____________GET/about_________>> |
+        |                                       |
+        |<<________Headers+about.html___________|
+        |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \                                   | 
+        |    \_____________GET/image_________>> |
+        |                                       |
+        |<<________Headers+image.jpg____________|
+        |                                       |
+  close |                                       |
+
+In HTTP/1.1 you can send multiple requests within the same TCP connection.
+
+
+================ HTTP 1.1 Pipelining ===============
+ open   |                                       |
+        | \                                     |
+        |  \                                    |
+        |   \______________GET/______________>> |
+        | \                                     |
+        |  \                                    |
+        |   \______________GET/about_________>> |
+        | \                                     |
+        |  \                                    |
+        |   \______________GET/image_________>> |
+        |                                       |
+ client |<<________Headers+index.html___________|  Server
+        |                                       |
+        |<<________Headers+about.html___________|
+        |                                       |
+        |<<________Headers+image.jpg____________|
+        |                                       |
+  close |                                       |
+
+
+In HTTP/1.1 Pipelining,
+    instead of waiting for the response after each request
+    we can send multiple requests before getting the response
+    - This is a concept taken from the CPU
+
+There are some problems with this technique
+    - What if the first request takes too large time but the second is fast
+      The server can't send the second response before the first request 
+      because the client will think this is for the first request. 
+- A solution for this problem is to add a mark or label to tell the client 
+  that this response if for that request. 
+
+
+
+>>>>>> HTTP/1.1
+- Persisted TCP Connection
+- Low Latency & Low CPU Usage
+- Streaming with Chunked transfer
+- Pipelining (disabled by default)
+- Proxying & Multi-homed websites
+
+
+
+>>>>>> HTTP/2
+- SPDY
+- Compression
+- Muliplexing
+- Server Push
+- Secure by default
+- Protocol Negotiation during TLS (NPN/ALPN)
+
+
+
+>>>>>> HTTP over QUIC (HTTP/3)
+- Replace TCP with QUIC (UDP with Congestion Control)
