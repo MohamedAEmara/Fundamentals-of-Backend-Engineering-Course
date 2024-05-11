@@ -1,0 +1,86 @@
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Web Sockets <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+- Bidirectional communications on the web.
+- it's built on top of "HTTP"
+
+
+============ WebSockets ==========
+first, we send a HTTP request with a special semantic to 
+    tell the server that we'll establish a web-socket connection.
+    (socket HANDSHAKE)
+once we get a response that says "Hey, your connection is now (web-socket)"
+after that both of "server" and "client" can send messages to each other.
+
+==================== Web Sockets =====================
+ open   |                                       |
+        |                                       |
+ KEY    |<<<<<<--- WebSocket HANDSHAKE --->>>>>>|  KEY
+        |                                       |
+        |<<---Response to establish websocket---|
+        |                                       |
+        |---------------------------->>>>>>>>>> |
+        |---------------------------->>>>>>>>>> |
+        |<<<<<<<<<------------------------------|
+        |---------------------------->>>>>>>>>> |
+        |<<<<<<<<<------------------------------|
+        |<<<<<<<<<------------------------------|
+        |                                       |
+ close  |                                       |
+
+
+
+============ WebSockets HANDSHAKE ws:// or wss:// ===========
+ open   |                                       |
+        |\                                      |
+        | \                                     |
+        |  \                                    |
+        |   \---------GET 1.1 UPGRADE -------->>|
+        |                                      /|
+        |                                     / |
+        |                                    /  |
+        |<<------101-Switching Protocols----/   |
+        
+// Now the client & the server agrees that's no longer an HTTP
+// this is now "Web Socket"
+
+
+========= Client Request =========
+
+    GET /chat HTTP/1.1
+    Host: server.example.com
+    Upgrade: websocket
+    Connection: Upgrade
+    Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
+    Sec-WebSocket-Protocol: chat, superchat
+    Sec-WebSocket-Version: 13
+    Origin: http://example.com
+
+=========== Server Response ===========
+
+    HTTP/1.1  101  Switching Protocols
+    Upgrade: websocket
+    Connection: Upgrade
+    Sec-WebSocket-Accept: HSmrc0sM1YUkAGmm50PpG2HaGWk=
+    Sec-WebSocket-Protocol: chat        
+# NOTE: it supports only (chat). it doesn't support (superchat) 
+
+
+
+============== WebSocket use cases ================
+- Chatting
+- Live Feed
+- Muliplayer Gaming
+- Showing client progress/logging
+
+
+
+
+===================== WebSocket Pros/Cons ==================
+Pros: 
+    - Full-duplex (no polling)
+    - HTTP compatiple
+    - Firewall friendly (standard)
+    
+Cons: 
+    - Proxying is tricky
+    - L7 LB challengin (timeout)
+    - Stateful, difficult to horizontally scale
