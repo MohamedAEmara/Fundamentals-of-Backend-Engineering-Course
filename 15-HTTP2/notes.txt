@@ -1,0 +1,33 @@
+================== http 1.1 =================
+
+client     ======================     server
+
+in HTTP/1.1 Once a client sends a request the pipe is busy and you can't send another request in that pipe
+after we get a response back, we can use the pipe for another request.
+
+
+But in HTTP/2 you can send multiple requests in the same TCP connection (concurrently)
+
+
+
+===================== HTTP/2 Pros & Cons =================
+Pros:
+    - Multiplexing over single connection (save resouces)
+        You can combine more than one request in the same pipe
+    - Compression (Headers & Data)
+    - Server Push
+    - Secure be default
+    - Protocol Negotiation during TLS (ALPN)
+
+Cons: 
+    - TCP head of line blocking 
+        I've sent some requests but TCP order them and if there's something wrong
+        with segment1 none of the other requests will be processed.
+        although they don't depend on each other.
+    - Server Push never picked up
+    - High CPU usage
+
+
+HTTP/2 is faster than HTTP/1.1 because of Multiplexing
+    - you can send many segments with the same request.
+    
