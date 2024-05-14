@@ -1,0 +1,82 @@
+>>>>>>>>>>>>>>>>>>>>>>>>> HTTP/3 <<<<<<<<<<<<<<<<<<<<<<<<
+The idea of HTTP/3 is to take the feature (stream) and push it to "transport" layer
+and get rid of TCP layer, we'll use UDP instead.
+so, we don't have any of TCP problems like "TCP head of lines"
+
+
+
+======= TCP head of line blocking =======
+- TCP segment must be delivered in order
+- But streams don't have to
+- Block requests
+
+
+
+============ HTTP/2 TCP HOL ===========
+GET /main.js (stream1)  seg 1, 2
+GET /main.css (stream2) seg 3, 4
+GET /img1.jpg (stream3) seg 5, 6
+GET /img2.jpg (stream4) seg 7, 8
+
+We'll send 4 concurrent GET requests and they'll go in stream 1,2,3,4
+
+and we have 8 segments and every two segments will fit in a single request.
+
+Now if the server finishes segments 1 & 2 
+    it will immediately deliver this response.
+and req 3, 4 then deliver second response
+and the same for 8 segments
+
+But what if there is a problem in segment 3 (it lost) ???
+    after 1&2 were delivered and the response was sent.
+    but because of missing of seg3 all other 4,5,6,7,8 won't be delivered
+    --- They have to be in order ---
+    
+    but why it blocks all other requests although 5,6,7,8 don't depend on it ??
+    - Because TCP doesn't know for what request they are.
+    - It sees them as a stream of bytes
+
+That's what meant by "Head of Line Blocking"
+So we have HTTP/3 that solves this problem...
+
+
+=================== HTTP/3 & QUIC ==================
+First of all, they built QUIC and then built HTTP/3 on top of it.
+
+- HTTP/3 uses QUIC
+- Like HTTP/2, QUIC has streams
+- But QUIC uses UDP instread
+
+
+Back to the same example if we have 4 requests (8 UDP datagrams) ""not TCP segments""
+
+sever doesn't care about the order if datagram 3 wasn't sent
+it will send the rest of datagrams
+
+
+
+================== HTTP/3 && QUIC Pros ===================
+- QUIC has many other benifits
+- Merges Connection setup + TLS in one handshake
+    that makes TLS secure by default
+- Has congestion control at stream level
+- Connection migration (connectionID)
+    -because now UDP is "Stateless", we have to send the connectionID within 
+     every single packet we send
+    - because we added connectionID, we got something for free 
+       When you're on your wifi network and you leave it and go to 4G
+       your IP changed so you have to establish a new connection
+       in this case we can use "connectionID" to migrate from wifi to LTS and vice verca
+       Now the UDP packet has a different sourceIP and different sourcePort 
+       but the connectionID is the same.
+
+        NOTE: this has security issues because connectionIDs are not encrypted.
+
+
+- why not HTTP/2 over QUIC ??
+    - Header Compression Algorithm
+
+=================== HTTP/3 & QUIC Cons ==================
+- Takes a lot of CPU (parsing logic)
+- UDP could be blocked
+- IP Fragmentation is the enemy
