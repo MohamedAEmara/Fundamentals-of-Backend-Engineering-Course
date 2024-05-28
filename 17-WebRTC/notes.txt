@@ -1,0 +1,83 @@
+>>>>>>>>>>>>>>>>>>>>>>>> WebRTC Overview <<<<<<<<<<<<<<<<<<<<<<<<
+- Stands for Web Real-Time Communication.
+- Find a peer to peer path to exchange video and audio in an efficient  
+  and low latency manner.
+- Standardized API.
+- Enables rich communications browsers, mobile, IOT devices.
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>> How it works <<<<<<<<<<<<<<<<<<<<<<<<<<
+- A wants to connect to B 
+- A finds out all possible ways the public can connect to it.
+- B finds out all possible ways the public can connect to it.
+- A and B signal this session information via other means
+    - WhatsApp, QR, TWeet, WebSockets, HTTP Fetch...
+- A connects to B via the most optimal path.
+- A & B also exchanges their supported media and security.
+
+
+
+
+>>>>>>>>>>>> NAT (Network Address Translation) <<<<<<<<<<<<<
+
+Client A "10.0.0.2" wants to send a request to ther server B "4.4.4.4:80"
+
+When we want to connect (or send a request) to a server, our Router gives us a 
+"Public IP address & Port" to use
+
+1- You (the client) construct a GET request like this:
+ _______________________________________________
+| 8992  |  10.0.0.2  |  GET/  |  4.4.4.4  |  80 |
+ ```````````````````````````````````````````````
+  you want to send a request to the server 4.4.4.4:80
+  with your source IP & Add (private)
+
+2- The first question your machine does is:
+    "Can I actually connect to 4.4.4.4:80" ?
+   this is called "Subnet Masking"
+   Is this in the same Subnet Mask??
+
+3- We found that this dest IP is not in the same network
+   So, we need the help from "Gateway" to be able to communicate to this IP
+
+4- When the router gets the request, it says:
+    "this request is not intended for me, because the dest is not 10.0.0.1
+   So, it has to search outside....
+
+5- Before letting the request header to be sent out. it hide the IP address of its source.
+   because nobody will understand "10.0.0.2" in the outside world..
+   it gives the client a public IP address. for example "5.5.5.5:3333"
+
+6- Now the request looks like this:
+ ______________________________________________
+| 3333  |  5.5.5.5  |  GET/  |  4.4.4.4  |  80 |
+ ``````````````````````````````````````````````
+
+7- But before it replaces the IP & Port it creates a (NAT Table)
+ _____________________________________________________________________________________________
+|  Internal IP  |  Internal Port  |  External IP  |  External Port  |  Dest IP  |  Dest Port  |
+ ---------------------------------------------------------------------------------------------
+|    10.0.0.2   |       8992      |    5.5.5.5    |       3333      |  4.4.4.4  |     80      |
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+8- The server responds: 
+ ______________________________________________
+| 80  |  4.4.4.4  |  200 OK  |  5.5.5.5  |  80 |
+ ``````````````````````````````````````````````
+
+8- Now when I get a respond back from the server I can map it to the intended client from NAT table.
+
+
+
+
+
+
+======================== NAT Translation Methods =========================
+- One to One NAT (Full-cone NAT)
+- Address restricted NAT
+- Port restricted NAT
+- Symmetric NAT
+
+NOTE: WebRTC by default works with the first 3, but we need another mechanism for the last one.
+ 
