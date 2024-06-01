@@ -81,3 +81,190 @@ When we want to connect (or send a request) to a server, our Router gives us a
 
 NOTE: WebRTC by default works with the first 3, but we need another mechanism for the last one.
  
+
+
+==================== (1) One to One NAT (Full core NAT) ====================
+Packets to external IP:port on the router always maps to internal IP:port without exceptions.
+ _____________________________________________________________________________________________
+|  Internal IP  |  Internal Port  |  External IP  |  External Port  |  Dest IP  |  Dest Port  |
+ ---------------------------------------------------------------------------------------------
+|    10.0.0.2   |       8992      |    5.5.5.5    |       3333      |  4.4.4.4  |     80      |
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+If it's configured as One-to-One NAT, the router will always send the packet to the client
+   without checking where does it come from or any thing.
+
+
+
+=================== (2) Address Restricted NAT ===================
+Packets to external IP:port on the router always maps to internal IP:port as long as
+source address from packet matches the table (regardless of port)
+
+Allow if we communicated with the host before
+It searches in the NAT table if the dest IP is used before
+   if yes, let him in.
+
+
+=================== (3) Port Restricted NAT ===================
+Packets to external IP:port on the router always maps to internal IP:port as long as
+source address and port from packet match the table
+
+Allow if we communicated with this host:port before
+
+
+
+
+======================== (4) Symmetric NAT =======================
+- is the most restricted one.
+- Packets to external IP:port on the router always maps to internal IP:port as long as
+  source address and port from packet match the table.
+- Only Allow if a (Full Pair math)
+   matches IP:port for the source & IP:port for the dest 
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>> STUN <<<<<<<<<<<<<<<<<<<<<<<<<<
+- Session Traversal Utilities for NAT
+- Tell me my public ip address/port through NAT
+- Works for Full-cone, Port/Address Restricted NAT
+- Doesn't work for symmetric NAT
+- STUN server port 3478, 5349 for LTS
+   but you still can configure it on any other port
+- Cheap for maintain
+
+
+
+==================== STUN Request ==================
+
+ Client                 Router                   STUN Server 
+10.0.0.2         10.0.0.1   5.5.5.5             9.9.9.9:3478
+
+1- We create a packet and send to the router.
+ ________________________________________________
+| 8992  |  10.0.0.2  |  STN  |  9.9.9.9  |  3478 |
+ ````````````````````````````````````````````````
+
+2- The router says: "You can't go with this IP, let me give you the public IP"
+ _______________________________________________
+| 3333  |  5.5.5.5  |  STN  |  9.9.9.9  |  3478 |
+ ```````````````````````````````````````````````
+
+ 
+3- Send it to the STUN Server and add it to NAT table:
+ _____________________________________________________________________________________________
+|  Internal IP  |  Internal Port  |  External IP  |  External Port  |  Dest IP  |  Dest Port  |
+ ---------------------------------------------------------------------------------------------
+|    10.0.0.2   |       8992      |    5.5.5.5    |       3333      |  9.9.9.9  |    3478     |
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+
+ 
+4- Once the STUN server gets the request it responds back with this packet:
+         "You are 5.5.5.5:3333"
+ _______________________________________________
+| 3478  |  9.9.9.9  |  RSP  |  5.5.5.5  |  3333 |
+ ```````````````````````````````````````````````
+
+
+5- When the router gets the packet back and extract the internal IP & Port from NAT table
+   this client will get the message containing his public IP
+      "You are 5.5.5.5:3333"
+
+NOTE: They will not be able to communicate if the server (dest) uses symmetric NET 
+
+
+
+=========================== TURN =========================
+- Traversal Using Relays around NAT
+- In case of Symmetric NAT => we use TURN
+- It's just a server that relays packets 
+- TURN default server port 3478, 5349 for LTS
+- Expensive to maintain and run
+
+
+// The idea here is that each of "source" & "des" establishes a connection with the NAT server
+   and when they send a message, they don't send it directly to other, just pass it to the NAT 
+   and it will deliver it for you.
+
+
+
+                                 +----------+         
+                                 |          |
+      Client A   ---Send hello   |          | --5.5.5.5:3333 sent          Client B 
+      10.0.0.2   7.7.7.7:4444--->|   NAT    |   "hello" to you-->         192.168.1.2
+   (5.5.5.5:3333)                |  server  |  Sure, Tell 5.5.5.5:3333---(7.7.7.7:4444)
+Behind NAT Symmetric             |          |<--I said "Hi"               Symmetric NAT 
+                                 |          |
+                                 +----------+
+
+
+
+
+================================== ICE =================================
+- Interactive Connectivity Establishment 
+- ICE collects all available candidates (local IP addresses, reflexive addresses 
+                                          - STUN ones and relayed addresses 
+                                          - TURN ones)
+- Called ICE candidates
+- All the collected addresses are then sent to the remote peer via SDP 
+
+
+
+
+================================= SDP ================================
+- Session Description Protocol
+- A format that describes ice candidates, networking options, media options, 
+  security options, and other stuff
+   NOTE: It's a string file that contains options.
+         It's generated by the user and sent somehow to other party
+- NOT really a protocol in its format
+
+
+
+>>>>>>>>>>>>>>>>>>> SDP Example
+v = 0
+o = -9148204791819634656 3 IN IP4 127.0.0.1
+s = -
+t = 0 0
+a = group:BUNDLE audio video data
+a = msid-semantic: WMS kyaiqdOs7S2h3EoSHabQ3JIBqZ67
+m = audio 50853 RTC/SAVPF 111 103 104 0 8 107 106 105 13 126
+c = IN IP4 192.168.1.64
+a = rtcp:50853 IN IP4 192.168.64
+a = candidate:3460887983 1 udp 2113937151 192.168.1.64 50853 typ host generation 0
+a = candidate:3460887983 2 udp 2113937151 192.168.1.64 50853 typ host generation 0
+...
+
+
+
+============================== Signaling ==============================
+- SDP Signaling
+- Send the SDP that we just generated somehow to the other party we wish to communicate with.
+- Signaling can be done via a tweet, QR code, WhatsApp, WebSockets, HTTP request DOESN"T MATTER!
+  just get that large string to the other party.
+
+
+
+
+
+============================== WebRTC Demystified ==============================
+1- A want to connect to B
+2- A creates an "offer", it finds all ICE candidates, security options, audio/video options
+     and generates SDP, the offer is basically the "SDP"
+3- A signals the offer somehow to B (WhatsApp)
+4- B creates the "answer" after setting A's offer 
+5- B signals the "answer" to A 
+6- Connection is created 
+
+
+
+
+
+============================== WebRTC Demo =============================
+- We will connect two browsers (Browser A & Browser B)
+- A will create an offer (SDP) and set it as local description 
+- B will get the offer and set it as remote description
+- B creates an answer sets it as its local description and signal the answer (SDP) to A 
+- A sets the answer as its remote description
+- Connection established, exchange data channel 
