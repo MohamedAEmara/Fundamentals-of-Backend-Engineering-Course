@@ -268,3 +268,36 @@ a = candidate:3460887983 2 udp 2113937151 192.168.1.64 50853 typ host generation
 - B creates an answer sets it as its local description and signal the answer (SDP) to A 
 - A sets the answer as its remote description
 - Connection established, exchange data channel 
+
+
+
+
+
+========================= WebRTC Pros & Cons ==========================
+Pros:
+   - P2P is great! low latency for high bandwidth content 
+   - Standardized API I don't have to build my own
+
+Cons:
+   - Maintaining STUN & TURN servers 
+   - P2P falls apart in case of multiple participants (discord case)
+
+
+
+
+============================== Media API =============================
+- getUserMedia() to access microphone, video camera 
+- RTCPConnection.addTrack(stream)
+- Reference to stream a video: https://www.html5rocks.com/en/tutorials/webrtc/basics/
+
+
+
+
+
+===================== onIceCandidate and addIceCandidate =====================
+- To maintain the connection as new candidates come and go
+- onIceCandidate telss user there is a new candidate after the SDP has already been created
+- The candidate is signaled and sent to the other party
+- The other party uses addIceCandidate to add it to its SDP
+
+
