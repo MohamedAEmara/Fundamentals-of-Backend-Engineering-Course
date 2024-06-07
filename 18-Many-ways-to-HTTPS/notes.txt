@@ -1,0 +1,139 @@
+>>>>>>>>>>>>>>>>>>>>>> HTTPS Communication Basics <<<<<<<<<<<<<<<<<<<<<<<
+- You always needs to establish a connection
+- Establish encryption
+- Send data
+- Close connection (when absolutely done)
+
+
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS Communications <<<<<<<<<<<<<<<<<<<<<<<<
+- HTTPS over TCP with TLS 1.2
+- HTTPS over TCP with TLS 1.3
+- HTTPS over QUIC
+- HTTPS over TCP fast Open 
+- HTTPS over TCP with TLS 1.3 0RTT       
+- HTTPS over QUIC with 0RTT
+
+
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over TCP with TLS 1.2 <<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        |    >>> SYN >>>        |    
+        |  <<< SYN/ACK <<<      |   
+        |    >>> ACK >>>        |
+// Now the client & server established a connection (over TCP)..
+// Because it's a HTTP(S) we need to encrypt the connection
+// So we need to aggree on symmetric keys
+// This done by sending hello & fin back and forth 
+        | >>> Client Hello >>>  |
+        | <<< Server Hello <<<  |
+        |  >>> Client fin >>>   |
+Client  |  <<< Server fin <<<   |  Server
+        |                       |
+        |     >>> GET/ >>>      |
+        |    <<< 200 OK <<<     |
+        |                       |
+        |                       |
+        |                       |
+
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over TCP with TLS 1.3 <<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        |    >>> SYN >>>        |    
+        |  <<< SYN/ACK <<<      |   
+        |    >>> ACK >>>        |
+// Because we're using TLS 1.3 I'm gonna assume you know Diffie Hellman
+// That's why we only need on cycle back and forth to encrypt the connection
+        | >>> Client Hello >>>  |
+        | <<< Server Hello <<<  |
+Client  |                       |  Server
+        |     >>> GET/ >>>      |
+        |    <<< 200 OK <<<     |
+        |                       |
+        |                       |
+        |                       |
+
+
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over QUIC (HTTP/3) <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+What we do is to send a connection (3-way handshake) and a TLS handshake happens in the
+same module
+We actually combined TLS/1.3 with the handshake of QUIC in the same request
+        |      >>> QUIC >>>      |    
+        |      <<< QUIC <<<      |   
+        |      >>> QUIC >>>      |    
+// Now the Get/ request and the response will be encrypted.
+Client  |                        |  Server
+        |     >>> GET/ >>>       |
+        |    <<< 200 OK <<<      |
+        |                        |
+        |                        |
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over TFO with TLS/1.3 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+Stands for (fast open)
+
+        |       >>> SYN + TFO >>>       |    
+        |      >>> Client Hello >>>     |
+        |                               |     
+        |        << SYN/ACK <<<         |
+        |     <<< Server Hello <<<      |
+client  |                               |  server   
+        |         >>> ACK >>>           |
+        |         >>> GET/ >>>          |
+        |        <<< 200 OK <<<         |
+        |                               |     
+        |                               |     
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over TCP with TLS/1.3 0RTT <<<<<<<<<<<<<<<<<<<<<<<<
+0RTT ==> stands for (zero round trip)
+Here we send the client hello & the request in the same path
+When the server accepts the client hello, it immediately responds back  
+with the server hello & the response.
+        |          >>> SYN  >>>         |    
+        |        <<< SYN/ACK <<<        |
+        |          >>> ACK >>>          |     
+        |                               |     
+        |      >>> Client Hello >>>     |
+        |          <<< Get/ <<<         |
+client  |                               |  server   
+        |      <<< Server Hello <<<     |
+        |        <<< 200 OK <<<         |
+        |                               |     
+        |          >>> fin >>>          |     
+        |                               |    
+
+in the method, we save time by not waiting till we get a server hello before we send
+instead, we send the hello with the request we want together.
+
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>> HTTPS over QUIC  0RTT <<<<<<<<<<<<<<<<<<<<<<<<
+This is the fastest you can go.
+
+        |      >>> QUIC >>>      |    
+        |      >>> GET/ >>>      |   
+        |                        |
+        |      <<< QUIC <<<      |    
+        |     <<< 200 OK <<<     |
+        |                        |
+        |      >>> QUIC >>>      |    
+        |                        |
