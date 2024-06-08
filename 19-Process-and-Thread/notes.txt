@@ -1,0 +1,136 @@
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Process VS Thread <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+- What is Process?
+    - a set of instructions
+    - has an isolated location in memory (dediated for it) 
+       no one can read from that particular location in memory 
+       except the process itself or (children of the process)
+    - has a PID (process identifier) that OS assigns to it.
+    - scheduled in the CPU for the execution
+
+
+
+- What is a Thread?
+                    +---------+
+                    |   PID   |
+                    +---------+
+            +-----+  +-----+  +-----+
+            | LWP |  | LWP |  | LWP | 
+            +-----+  +-----+  +-----+        
+    - Light Weight Process (LWP)
+    - a set of instructions
+    - shares memory with parent process "The only difference between thread & process"
+    - has an ID
+    - scheduled in the CPU 
+
+
+
+================ Single Threaded Process ================
+- One process with a single thread
+- Simple
+- Example: NodeJS
+
+
+
+=================== Multi-Processes ===================
+            +---------+   +---------+   
+            |   PID   |   |   PID   |
+            +---------+   +---------+
+            +---------+   +---------+   
+            |   PID   |   |   PID   |
+            +---------+   +---------+
+- App has multiple processes
+- Each has its own memory
+- Examples: NGINX / Postgres 
+    NGINX has its own workers, and each has its own memory plus a shared memory.
+- Take advantage of multi-core
+    NOTE: if you have a single-threaded-process => you can't use 4 cores
+          the requests will be hold to be executed on a single processor.
+- consumes more memory but isolated 
+- Redis backup routine (COW) "copy on write"
+
+>>> Asynchronous Snapshots:
+- it takes whatever in the cache at that moment and flush into disk
+- it sounds simple, but it's actually very difficult to implement
+    if Redis as a process decided to do a "Snapshot", it'll take every thing
+    in memory and start writing it to the disk.
+    But what if someone changes something while writing?
+    So, there's no consistency in the Snapshot.
+    because Snapshot means at a single time what are all the values in memory
+
+    One of the solution could Redis do is "Nobody can change anything while I'm taking a sanpshot"
+        A bad solution as it blocks the whole application and increases latency.
+
+    How about forking our process (create a copy of our entire memory to a different process)
+    and on that process we're gonna run (asynchronous backup)
+    What's the problem with this solution? 
+        forking & copying memory is not so bad if you have a 5 megabyte memory for example
+        but imagine Gigabytes of memory being copied. it will be so expensive.
+
+    Let's introduce a very smart technique (COW)
+        we only copy pages that are about to change 
+    Technically the processes will share a huge memory
+    as long as they are reading, you don't care 
+    But the moment one process starts to change, that page in memory that contains this value
+        will change is gonna be copied before it got changed 
+
+
+
+
+===================== Multi-Threaded =====================
+
+            +----------+
+            |    PID   |
+            +----------+
+    +-----+   +-----+   +-----+
+    | LWP |   | LWP |   | LWP | 
+    +-----+   +-----+   +-----+
+
+- One Process, multiple threads
+- Shared memory (compete)
+- Take advantage of multi-cores
+- requires less memory (compared to multi-process architecture)
+- Race conditions
+    if two threads want to change the same variable at the same time
+    How do you know which one wins?
+- Locks and Latches (SQL Server)
+- Examples: Apache, Envoy, SQL Server
+
+*===========*
+in SQL server, there's a concept that called "Primary Clustered Key"
+
+if you create a Primary and it's Clustered by default on your table
+whatever the key the Clustered key becomes "inserts to that table have to go in order" 
+
+because the Clustered key is nothing but a B-Tree and the final leaf pages are the actual table
+and the entire rows are in the leaf pages and they're organised (ordered)
+and you're inserting millions of rows at the same time.
+
+we found that there's a lot of locking involved at the final page of SQL server 
+Why that?
+because SQL server by default spends up multiple threads to do the answers
+
+for example: If I say (Insert 10 records to SQL server instance "from multiple connections")
+what will happen is (each tread will take one of these workloads and schedule these in each one of the thread)
+and all these thread need to write to the table 
+this case ends up with (all threads are competing write to the same page) same problem with the variable (race condition)
+
+We aquire a mutex 
+what does the "mutex" do?
+it locks the first thread, and all other threads will wait till this tread complete and unlock again.
+But there's a problem here. waiting in DB is the worst thing.
+the time spending locking & unlocking and that wastes a lot of time
+
+If the threads are sent from the same connection, the SQL server is smart enough to use a single thread instead of multiple threads
+So, we want 10 wors to be inserted by one thead.
+the thread will lock and insert 10 rows at one time and them unlock
+that better from use multiple threads competing on a single page leaf.
+*===========*
+
+
+
+
+>>>>>>>>>>>> How many is too many?
+- too many processes/threads
+- CPU context switch
+- multiple cores help
+- Rule of thumb   ==>   #cores = #Processes 
