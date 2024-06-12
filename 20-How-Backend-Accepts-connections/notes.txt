@@ -1,0 +1,89 @@
+>>>>>>>>>> Connection Establishment <<<<<<<<<<
+
+
+    +----+   >>>> SYN >>>>   +----+
+    |    |   << SYN/ACK <<   |    |
+    +----+   >>>> ACK >>>>   +----+
+      --                       --
+
+- TCP Three way handshake
+- SYN / SYN-ACK / ACK
+- But what happens on the backend??
+
+> Server listens on an address:port
+    your computer has multiple network interfaces
+    and each network interface has an IP address
+    Note: if you say just listen on port 8080 and don't specify an address
+          you're listening on all these interfaces
+          and that makes your backend exposed to the public.  
+> Client connects
+> Kernel does the handshake creating a connection
+    The kernel is the only one who creates a connection.
+    what the backend does is to tell the kernel that I'm listening on this address:port
+> Backend process "Accepts" the connection 
+
+
+- Kernel creates a socket & two queues SYN and Accept
+- Client sends a SYN
+- Kernel adds to SYN queue, replies with SYN/ACK
+- Client replies with ACK
+- Kernel finishes the connection
+- Kernel removes SYN from SYN queue
+- Kernel adds full connection to Accept queue
+- Backend accepts a connection, removed from Accept queue & puts it in the application process
+- A file descriptor is created for the connection (uniquely identifies the connection)
+    and that file is given to the backend application representing the (connection)
+
+
+
+
+
+
+
++-----+
+|     |
++-----+
+  ---
+  SYN queue
+    +-----------------------------------+
+    |   |   |   |   |   |   |   |   |   |
+    +-----------------------------------+
+
+  Accept queue
+    +-----------------------------------+
+    |   |   |   |   |   |   |   |   |   |
+    +-----------------------------------+
+
+When you're listenning on and address:port the kernel creates 2 queues { SYN, Accept }
+
+- A client sends a SYN request, the Network Interface Controller (NIC) receives the frame
+    and passes the frame to the OS, and the kernel does all TCP stuff
+    and find out that IP address is our backend and there's a maching listener in this queue
+
+- once the kernel adds the SYN in the SYN queue, it (kernel) immediately sends a SYN/ACK to the client
+    without the backend getting involved
+
+- the client completes the handshake and sends (ACK) back
+
+- The moment the ACK arrives and the kernel starts matching it with the existing (SYN) 
+    "because you may have more than 1 SYN in the SYN queue" by matching the source/dest port
+
+- Once we got a match we remove the connection to the other queue
+
+- Now the job for the process to call a function "accept()" which will copy this connection down to its process
+    and empty that entry from the Accept queue
+
+
+- What happend if you got many connections and "Accept Queue" gets full ??
+    No more (SYN/ACK) will be sent to the client because we don't have any place for more connections
+    and the backend is lazy handling all these requests (This is a problem a reverse-proxy, nginx solves)
+
+
+
+>>>>>>>>>>>> Problems with accepting connections <<<<<<<<<<<<<
+- Backend doesn't accept fast enough
+- Clients who don't ACK (I'm sending SYN but not getting ACK) "SYN flooding problem"
+    in this case the SYN queue will be full and connections don't move to the Accept queue
+- Small backlog
+    if you have 6 connection entries for example, this can get filled really quickly
+    NOTE: adding backlog requires more structure like (momory - processor)
