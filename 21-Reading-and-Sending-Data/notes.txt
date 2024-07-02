@@ -1,0 +1,85 @@
+------------------ Reading and Sending Data ------------------
+>>>>>>>>>>>>>>>>>>> Receive vs Send buffers <<<<<<<<<<<<<<<<<< 
+
+this is the job of "Backend" when the job of kernel is done.
+
+
+>>>>>>> Send and Receive buffers
+In addition to the "SYN" & "Accept" queues, the kernel has 2 more queues  
+    "Send", "Receive" buffers
+
+- Client sends data on a connection (after it was established)
+- Kernel puts data in receive queue (dedicated for that process)
+- Kernel ACKs (may delay) and update window
+- App calls read to copy data (from receive buffer into its own memory)
+
+
+
+
+>>>>>>>> Receive buffer (where the client sends data)
+
++------+
+|Client| ____
++------+    |
+  ---       |
+    ^       |
+    |       | data
+    |       |   
+    |       v       Receive buffer
+    |   +---------------------------------------+
+    |   | ===== |       |       |       |       |
+    |   +---------------------------------------+
+    |       |  ^
+    |_______|  |_____
+       ACK          |
+                    |
+               copy | read()
+                    |
+                +-------+
+                |       |
+                |  PID  |
+                |       |
+                +-------+
+
+If you call read(), you'll be blocked to do anything else 
+but instead, you can copy it into your own memory and remove it from receive buffer kernel
+
+
+
+>>>>>>>> Send buffers
+
++------+
+|Client| <--+
++------+    |
+  ---       |
+    |       |
+    |       | data
+    |       |   
+    |       |       Send buffer
+    |   +---------------------------------------+
+    |   | ===== |       |       |       |       |
+    |   +---------------------------------------+
+    |       ^  ^
+    |_______|  |_____
+       ACK          |
+                    |
+               copy | send()
+                    |
+                +-------+
+                |       |
+                |  PID  |
+                |       |
+                +-------+
+
+There is a trade off between 
+    1- Sending the data whenever the buffer is full (reduce bandwidth by sending multiple requests at a time)
+    2- Sending the data whenever there's a ready data in the buffer to send (avoid waiting for a request and immediately being sent)
+
+
+
+
+>>>>>>>>>>>>>>>>>>> Problems with Reading & Sending
+- Backend doesn't read fast enough 
+    or the kernel at the backend doesn't put the data into the buffer (have no enough space)
+- Receive queue is full
+- Client slows down
