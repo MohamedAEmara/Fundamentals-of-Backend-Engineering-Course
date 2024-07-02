@@ -1,0 +1,99 @@
+>>>>>>>>>>>>>>>> Listener vs Acceptor vs Reader <<<<<<<<<<<<<<<<<
+
+Listener: is the thread or the process that calls (listen) and passes 
+            the port and the address and gets back (socketID)
+
+Acceptor: is whoever has access to (socketID) and calls (accept) on the socketID
+            to get back file-descriptors pointing to the connection
+
+Reader: the one who reads the connection
+
+
+the backend single process can do all these jobs but we separated that because you may have 1 listener, 3 acceptors, 5 readers for example.
+
+
+
+
+
+>>>>>>>>>>>>>>>> Single Listener / Single Worker Thread 
+
+Node is a perfect example for that (single listener, single acceptor, single reader) it's actually (single threaded application)
+
+
+                        O 
+                       /|\
+
+                        |
+                        |
+                        v
+
+                        OS
+
+                        |
+                        |
+                        v
+                +---------------+
+                |  C1           |   
+        +-----> |       C2      |
+        |       |          C3   |
+        |       +---------------+
+        |
+    Connection                
+
+
+
+
+- We have the client application trying to connect the OS which is the kernel (with the queues that we mentioned)
+    and below it is the backend application process (single process)
+
+- What happens on the (backend application process) is:
+    - the listener listens on the OS and create buffers (accept, syn) queues, and start listening
+    - the moment we accept something it creates a new connection C1, C2, C3, ...
+    - These connections that accepts but the process (wrapper) that listens 
+    - The same process is responsible for reading from all the connections C1, C2, C3
+
+what's the problem here?
+    if you have a lot of connections, the process will be chatty moving between all connections
+
+One solution for this is to create many instances of Node so that you have more than one running process.
+
+
+
+
+>>>>>>>>>>>>>>>> Single Listener / Multiple Worker Threads 
+Memcached
+
+                        O 
+                       /|\
+
+                        |
+                        |
+                        v
+
+                        OS
+
+                        |
+                        |
+                        v
+                        O   Listener Acceptor
+                       / \
+                      /   \
+                     /     \
+                    /       \
+                 +----+     +----+
+                 |  C |     | C  |  Readers
+                 +----+     +----+
+
+
+
+- There is a single process and this process will spends up threads 
+- That process is the listener and is the acceptor as well
+- So we have 1 listener, 1 acceptor, multiple readers
+- The moment we got a connection, the listener accepts the connection from the queue and puts it back in the process (copy)
+- the moment it copies that, it has X readers (by default it matches the number of cores) and assigns that process to one of its readers
+- Who actually does the job? it could be the same thread or another thread.
+
+- The problem in that model is balancing the connections among readers
+    although we try to balance the number of connections for each thread, some processes may take longer than the other
+
+
