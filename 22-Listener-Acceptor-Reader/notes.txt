@@ -97,3 +97,112 @@ Memcached
     although we try to balance the number of connections for each thread, some processes may take longer than the other
 
 
+
+
+>>>>>>>>>>>>>>>> Single Listener / Multiple Worker Threads (with load balancing)
+RamCloud
+
+
+                        O 
+                       /|\
+
+                        |
+                        |
+                        v
+
+                        OS
+
+                        |
+                        |
+                        v
+
+
+                +---------------+
+                |  O            |   
+                |       O       |   1 Listener, 1 Acceptor, N Readers 
+                |           O   |   all in the same process.
+                +---------------+
+                    /    \
+        msg/request/      \ msg/request
+                  /        \            Multi-Threads
+                 /          \   
+              +---+       +---+
+              |   |       |   |
+              +---+       +---+  
+
+The threads instead of getting raw connection, those threads get actual requests (ready to be processed)
+and the connection here (single process) does the read, parse, decrypt. and only pass the request to the worker treads.  
+
+
+
+
+
+
+
+>>>>>>>>>>>>>>>>> Muliple Threads / Single Socket
+Nginx (very popular reverse proxy)
+
+
+
+                        O 
+                       /|\
+
+                        |
+                        |
+                        v
+
+                        OS
+
+                        |
+                        |
+                        v
+                        O   Listener
+                       ^ ^
+                       | |
+                       / \
+                      /   \
+                     /     \
+                    /       \
+                +---+       +---+
+                |   |       |   |   Acceptors / Readers
+                +---+       +---+  
+        Muliple Threads (multiple acceptors)
+
+
+What Nginx does ?
+it has a single listener as the main worker process, it means the socket lives right there 
+but all threads have access to that socket object
+and each one of them call (accept) on the same object 
+But you can't have 2 threads accepting on the same socket at the same time
+So Nginx controls this and allows only one thread to accept at a time
+
+There are locking and unlocking being placed all the time.
+ 
+
+
+
+>>>>>>>>>>>>>>>>> Multiple listeners on the same port
+This won't work in Node for example (listen for the same address/port)
+
+SO_REUSEPORT = true
+if you enable this option (socket reused port), you'll be able to share the socket among multiple processes
+
+
+                        O 
+                       /|\
+
+                        |
+                        |
+                        v
+
+                        OS
+                       / \
+                      /   \
+                     /     \
+                    /       \
+                 +--+      +--+
+                 |  |      |  |  Listeners, Acceptors, Readers    
+                 +--+      +--+
+
+What the OS will do is to create multiple queues for each process and starts distributing these 
+So, you can spend up N number of threads, When every one listens, it has a unique socket-id because each one has its own sets of queues.
