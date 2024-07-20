@@ -1,0 +1,30 @@
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Idempotency <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+- Resending the request without affecting backend
+- Avoid executing the same request twice
+
+
+=== What is Idempotency?
+
+example: API /postcomment
+- let's say you sent a request to the backend but lost connection before getting a response
+- Now the frontend doesn't know that the request was sent
+- Now the frontend says if you want to comment "Try Again"
+- Now the client send the same request again to the backend
+- Both of the comments were stored in the DB
+
+- This may seem not a problem in this case, but imagine it's a payment process!!!
+
+
+One solution for that is to Uniquely Identify each request to verify if it's been served or not yet
+
+Sometimes proxies do that for you
+
+- Easy implementation:
+    - with each request you send, attach a RequestID
+    - if request has been processed, Return
+
+this might be expensive, because there's a look up you want to do 
+
+- Get is idempotent
+- So, Don't use GET requests to make changes
+- Browsers and proxies treat GET as idempotent
